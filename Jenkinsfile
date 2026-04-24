@@ -5,6 +5,7 @@ pipeline {
         SONARQUBE_TOKEN = credentials('sonar-token')
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
         DOCKER_REPO = 'fercdevv/jenkins-node'
+        TRIVY_CACHE_DIR = '/tmp/trivy-cache'
     }
 
     stages {
@@ -63,7 +64,45 @@ pipeline {
             }
         }
 
-        stage('Construir y pushear imagen a dockerhub') {
+        stage('Build docker image') {
+            when {
+                branch 'master'
+            }
+            agent {
+                docker {
+                    image 'docker:latest'
+                }
+            }
+            steps {
+                sh '''
+                docker build -t $DOCKER_REPO:latest .
+                '''
+            }
+        }
+
+        stage('Trivy Scan') {
+            when {
+                branch 'master'
+            }
+            agent {
+                docker {
+                    image 'aquasec/trivy:latest'
+                }
+            }
+            steps {
+                sh '''
+                trivy image \
+                --cache-dir $TRIVY_CACHE_DIR \
+                --scanners vuln \
+                --severity HIGH,CRITICAL \
+                --exit-code 1 \
+                --timeout 5m \
+                $DOCKER_REPO:latest
+                '''
+            }
+        }
+
+        stage('Pushear imagen a dockerhub') {
             when {
                 branch 'master'
             }
@@ -77,7 +116,6 @@ pipeline {
             steps {
                 sh '''
                 echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin
-                docker build -t $DOCKER_REPO:latest .
                 docker push $DOCKER_REPO:latest
                 '''
             }
