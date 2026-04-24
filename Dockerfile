@@ -1,4 +1,7 @@
-FROM node:20-alpine
+FROM node:24-alpine
+
+# Update packages to fix known OS vulnerabilities (e.g., busybox, openssl)
+RUN apk update && apk upgrade --no-cache
 
 WORKDIR /app
 
