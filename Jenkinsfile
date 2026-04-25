@@ -141,7 +141,7 @@ pipeline {
                     aws cloudformation deploy \
                       --template-file infra/ecs.yml \
                       --stack-name $STACK_NAME \
-                      --capabilities CAPABILITY_NAMED_IAM
+                      --capabilities CAPABILITY_NAMED_IAM \
                       --parameter-overrides \
                         ImageUrl=$DOCKER_REPO:latest \
                         VpcId=vpc-0a3cd97730bc5332b \
