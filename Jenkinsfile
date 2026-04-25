@@ -7,7 +7,6 @@ pipeline {
         DOCKER_REPO = 'fercdevv/jenkins-node'
         TRIVY_CACHE_DIR = '/tmp/trivy-cache'
         AWS_REGION = 'us-east-1'
-        AWS_CREDENTIALS = credentials('aws-credentials')
         STACK_NAME = 'stack-ecs-fargate'
 
     }
@@ -134,7 +133,7 @@ pipeline {
             }
 
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "$AWS_CREDENTIALS"]]) {
+                withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
                     sh '''
                     aws cloudformation deploy \
                       --template-file infra/ecs.yml \
