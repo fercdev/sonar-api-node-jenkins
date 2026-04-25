@@ -20,13 +20,24 @@ pipeline {
                     def changes = sh(
                         script: "git diff --name-only HEAD~1 HEAD",
                         returnStdout: true
-                    ).trim()
+                    ).trim().split("\n")
 
-                    if (!changes) {
-                        echo "No hay cambios en repo"
+                    def relevantChanges = false
+
+                    for (change in changes) {
+                        if (change == "index.js" ||
+                            change == "Dockerfile" ||
+                            change.startsWith("tests/")) {
+                            relevantChanges = true
+                            break
+                        }
+                    }
+
+                    if (!relevantChanges) {
+                        echo "No hay cambios relevantes en el repositorio"
                         env.SKIP_BUILD_AND_PUSH = "true"
                     } else {
-                        echo "Archivos modificados:\n${changes}"
+                        echo "Archivos modificados:\n${changes.join("\n")}"
                     }
                 }
             }
