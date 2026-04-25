@@ -78,12 +78,9 @@ pipeline {
 
         stage('Build docker image') {
             when {
-                branch 'master'
-            }
-
-            when {
-                expression {
-                    return env.SKIP_BUILD_AND_PUSH != "true"
+                allOf {
+                    branch 'master'
+                    expression { env.SKIP_BUILD_AND_PUSH != "true" }
                 }
             }
             
@@ -124,14 +121,11 @@ pipeline {
 
         stage('Pushear imagen a dockerhub') {
             when {
-                branch 'master'
-            }
-            when {
-                expression {
-                    return env.SKIP_BUILD_AND_PUSH != "true"
+                allOf {
+                    branch 'master'
+                    expression { env.SKIP_BUILD_AND_PUSH != "true" }
                 }
             }
-
             agent {
                 docker {
                     image 'docker:latest'
@@ -147,10 +141,10 @@ pipeline {
         }
 
         stage("Deploy ECS FARGATE") {
-            when { branch 'master' }
             when {
-                expression {
-                    return env.SKIP_BUILD_AND_PUSH != "true"
+                allOf {
+                    branch 'master'
+                    expression { env.SKIP_BUILD_AND_PUSH != "true" }
                 }
             }
 
