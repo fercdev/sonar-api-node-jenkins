@@ -134,7 +134,7 @@ pipeline {
             }
 
             steps {
-                withAWS(credentials: "$AWS_CREDENTIALS", region: "$AWS_REGION") {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "$AWS_CREDENTIALS"]]) {
                     sh '''
                     aws cloudformation deploy \
                       --template-file infra/ecs.yml \
