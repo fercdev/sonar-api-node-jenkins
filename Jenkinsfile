@@ -14,17 +14,20 @@ pipeline {
 
     stages {
         stage("Check cambios") {
-            script {
-                def changes = sh(
-                    script: "git diff --name-only HEAD~1 HEAD",
-                    returnStdout: true
-                ).trim()
+            agent any 
+            steps {
+                script {
+                    def changes = sh(
+                        script: "git diff --name-only HEAD~1 HEAD",
+                        returnStdout: true
+                    ).trim()
 
-                if (!changes) {
-                    echo "No hay cambios en repo"
-                    env.SKIP_BUILD_AND_PUSH = "true"
-                } else {
-                    echo "Archivos modificados:\n${changes}"
+                    if (!changes) {
+                        echo "No hay cambios en repo"
+                        env.SKIP_BUILD_AND_PUSH = "true"
+                    } else {
+                        echo "Archivos modificados:\n${changes}"
+                    }
                 }
             }
         }
