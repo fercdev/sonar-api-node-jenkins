@@ -9,9 +9,26 @@ pipeline {
         AWS_REGION = 'us-east-1'
         STACK_NAME = 'stack-ecs-fargate'
 
+
     }
 
     stages {
+        stage("Check cambios") {
+            script {
+                def changes = sh(
+                    script: "git diff --name-only HEAD~1 HEAD",
+                    returnStdout: true
+                ).trim()
+
+                if (!changes) {
+                    echo "No hay cambios en repo"
+                    env.SKIP_BUILD_AND_PUSH = "true"
+                } else {
+                    echo "Archivos modificados:\n${changes}"
+                }
+            }
+        }
+
         stage('Instalar dependencias...') {
             agent {
                 docker {
@@ -33,17 +50,6 @@ pipeline {
             steps {
                 echo 'Listando todas las carpetas y archivos...'
                 sh 'npm run test'
-            }
-        }
-
-        stage('Listar carpetas y archivos del repo...') {
-            agent {
-                docker {
-                    image 'node:20-alpine'
-                }
-            }
-            steps {
-                sh 'ls -la'
             }
         }
 
@@ -71,6 +77,13 @@ pipeline {
             when {
                 branch 'master'
             }
+
+            when {
+                expression {
+                    return env.SKIP_BUILD_AND_PUSH != "true"
+                }
+            }
+            
             agent {
                 docker {
                     image 'docker:latest'
@@ -110,6 +123,11 @@ pipeline {
             when {
                 branch 'master'
             }
+            when {
+                expression {
+                    return env.SKIP_BUILD_AND_PUSH != "true"
+                }
+            }
 
             agent {
                 docker {
@@ -127,6 +145,11 @@ pipeline {
 
         stage("Deploy ECS FARGATE") {
             when { branch 'master' }
+            when {
+                expression {
+                    return env.SKIP_BUILD_AND_PUSH != "true"
+                }
+            }
 
             agent {
                 docker { 
