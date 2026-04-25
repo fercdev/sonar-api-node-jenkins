@@ -6,6 +6,10 @@ pipeline {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
         DOCKER_REPO = 'fercdevv/jenkins-node'
         TRIVY_CACHE_DIR = '/tmp/trivy-cache'
+        AWS_REGION = 'us-east-1'
+        AWS_CREDENTIALS = credentials('aws-credentials')
+        STACK_NAME = 'stack-ecs-fargate'
+
     }
 
     stages {
@@ -82,7 +86,7 @@ pipeline {
 
         stage('Trivy Scan') {
             when {
-                branch 'master'
+                branch 'qa'
             }
             agent {
                 docker {
@@ -119,6 +123,29 @@ pipeline {
                 echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin
                 docker push $DOCKER_REPO:latest
                 '''
+            }
+        }
+
+        stage("Deploy ECS FARGATE") {
+            when { branch 'master' }
+
+            agent {
+                docker { image 'amazon/aws-cli:latest' }
+            }
+
+            steps {
+                withAWS(credentials: "$AWS_CREDENTIALS", region: "$AWS_REGION") {
+                    sh '''
+                    aws cloudformation deploy \
+                      --template-file infra/ecs.yml \
+                      --stack-name $STACK_NAME \
+                      --capabilities CAPABILITY_NAMED_IAM
+                      --parameter-overrides \
+                        ImageUrl=$DOCKER_REPO:latest \
+                        VpcId=vpc-0a3cd97730bc5332b \
+                        Subnets="subnet-084371090cddeab02,subnet-08ee9a8fbd634ee19,subnet-0233ac4ffbd7f09c9,subnet-081e593c9cc8b1376,subnet-0790db53816907cc4,subnet-0a8702af878a5a838"
+                    '''
+                }
             }
         }
     }
