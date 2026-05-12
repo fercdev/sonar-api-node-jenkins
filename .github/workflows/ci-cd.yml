@@ -1,0 +1,106 @@
+name: CI/CD pipeline aws
+
+on:
+  push:
+    branches: [ master ]
+
+env:
+  AWS_REGION: us-east-1
+  DOCKER_REPO: fercdevv/jenkins-node
+  TRIVY_CACHE_DIR: /tmp/trivy-cache
+  STACK_NAME: stack-ecs-fargate
+  NODE_VERSION: 24
+
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout de codigo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: run tests
+        run: npm test
+
+  docker-build-push:
+    needs: build-test
+    runs-on: ubuntu-latest
+
+    if: github.ref == 'refs/heads/master'
+      
+    steps:
+      - name: Checkout de codigo
+        uses: actions/checkout@v4
+
+      - name: Login DockerHub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ env.DOCKER_REPO }}:latest
+  
+  trivy-scan:
+    needs: docker-build-push
+    runs-on: ubuntu-latest
+
+    if: github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Checkout de codigo
+        uses: actions/checkout@v4
+
+      - name: Setup Trivy cache directory
+        run: mkdir -p ${{ env.TRIVY_CACHE_DIR }}
+
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.DOCKER_REPO }}:latest
+          format: 'table'
+          exit-code: '1'
+          severity: 'HIGH,CRITICAL'
+          vuln-type: 'os,library'
+          cache-dir: ${{ env.TRIVY_CACHE_DIR }}
+
+  deploy-fargate:
+    needs: trivy-scan
+    runs-on: ubuntu-latest
+
+    if: github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Checkout de codigo
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to AWS Fargate
+        run: |
+          aws cloudformation deploy \
+            --template-file infra/ecs.yml \
+            --stack-name ${{ env.STACK_NAME }} \
+            --parameter-overrides \ 
+              ImageUrl=${{ env.DOCKER_REPO }}:latest \
+              VpcId=vpc-0a3cd97730bc5332b \
+              Subnets="subnet-084371090cddeab02,subnet-08ee9a8fbd634ee19,subnet-0233ac4ffbd7f09c9,subnet-081e593c9cc8b1376,subnet-0790db53816907cc4,subnet-0a8702af878a5a838" \
+            --capabilities CAPABILITY_NAMED_IAM
