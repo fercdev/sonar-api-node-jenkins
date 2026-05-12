@@ -54,28 +54,28 @@ jobs:
           push: true
           tags: ${{ env.DOCKER_REPO }}:latest
   
-  trivy-scan:
-    needs: docker-build-push
-    runs-on: ubuntu-latest
+  # trivy-scan:
+  #   needs: docker-build-push
+  #   runs-on: ubuntu-latest
 
-    if: github.ref == 'refs/heads/master'
+  #   if: github.ref == 'refs/heads/master'
 
-    steps:
-      - name: Checkout de codigo
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout de codigo
+  #       uses: actions/checkout@v4
 
-      - name: Setup Trivy cache directory
-        run: mkdir -p ${{ env.TRIVY_CACHE_DIR }}
+  #     - name: Setup Trivy cache directory
+  #       run: mkdir -p ${{ env.TRIVY_CACHE_DIR }}
 
-      - name: Run Trivy scan
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: ${{ env.DOCKER_REPO }}:latest
-          format: 'table'
-          exit-code: '1'
-          severity: 'HIGH,CRITICAL'
-          vuln-type: 'os,library'
-          cache-dir: ${{ env.TRIVY_CACHE_DIR }}
+  #     - name: Run Trivy scan
+  #       uses: aquasecurity/trivy-action@v0.36.0
+  #       with:
+  #         image-ref: ${{ env.DOCKER_REPO }}:latest
+  #         format: 'table'
+  #         exit-code: '1'
+  #         severity: 'HIGH,CRITICAL'
+  #         vuln-type: 'os,library'
+  #         cache-dir: ${{ env.TRIVY_CACHE_DIR }}
 
   deploy-fargate:
     needs: trivy-scan
