@@ -78,7 +78,7 @@ jobs:
   #         cache-dir: ${{ env.TRIVY_CACHE_DIR }}
 
   deploy-fargate:
-    needs: trivy-scan
+    # needs: trivy-scan
     runs-on: ubuntu-latest
 
     if: github.ref == 'refs/heads/master'
