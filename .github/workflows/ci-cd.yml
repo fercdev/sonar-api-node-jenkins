@@ -78,14 +78,14 @@ jobs:
   #         cache-dir: ${{ env.TRIVY_CACHE_DIR }}
 
   deploy-fargate:
-    # needs: trivy-scan
+    needs: docker-build-push
     runs-on: ubuntu-latest
 
     if: github.ref == 'refs/heads/master'
 
     steps:
       - name: Checkout de codigo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -99,7 +99,7 @@ jobs:
           aws cloudformation deploy \
             --template-file infra/ecs.yml \
             --stack-name ${{ env.STACK_NAME }} \
-            --parameter-overrides \ 
+            --parameter-overrides \
               ImageUrl=${{ env.DOCKER_REPO }}:latest \
               VpcId=vpc-0a3cd97730bc5332b \
               Subnets="subnet-084371090cddeab02,subnet-08ee9a8fbd634ee19,subnet-0233ac4ffbd7f09c9,subnet-081e593c9cc8b1376,subnet-0790db53816907cc4,subnet-0a8702af878a5a838" \
