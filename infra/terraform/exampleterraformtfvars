@@ -1,0 +1,14 @@
+aws_region = "us-east-1"
+
+image_url = "fercdevv/jenkins-node:latest"
+
+vpc_id = "vpc-0a3cd97730bc5332b"
+
+subnets = [
+    "subnet-084371090cddeab02",
+    "subnet-08ee9a8fbd634ee19",
+    "subnet-0233ac4ffbd7f09c9",
+    "subnet-081e593c9cc8b1376",
+    "subnet-0790db53816907cc4",
+    "subnet-0a8702af878a5a838"
+]

@@ -83,9 +83,6 @@ jobs:
 
     if: github.ref == 'refs/heads/master'
 
-    defaults:
-      run:
-        working-directory: infra/terraform
     steps:
       - name: Checkout de codigo
         uses: actions/checkout@v6
@@ -97,26 +94,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Setup terraform
-        uses: hashicorp/setup-terraform@v4
-        with:
-          terraform_version: "1.14.6"
-
-      - name: Terraform init
-        run: terraform init
-
-      - name: Terraform plan
+      - name: Deploy to AWS Fargate
         run: |
-          terraform plan \
-            -var="aws_region=${{ env.AWS_REGION }}" \
-            -var="image_url=${{ env.DOCKER_REPO }}:latest" \
-            -var="vpc_id=vpc-0a3cd97730bc5332b" \
-            -var='subnets=["subnet-084371090cddeab02","subnet-08ee9a8fbd634ee19","subnet-0233ac4ffbd7f09c9","subnet-081e593c9cc8b1376","subnet-0790db53816907cc4","subnet-0a8702af878a5a838"]' \
-
-      - name: Terraform apply
-        run: |
-          terraform apply -auto-approve \
-            -var="aws_region=${{ env.AWS_REGION }}" \
-            -var="image_url=${{ env.DOCKER_REPO }}:latest" \
-            -var="vpc_id=vpc-0a3cd97730bc5332b" \
-            -var='subnets=["subnet-084371090cddeab02","subnet-08ee9a8fbd634ee19","subnet-0233ac4ffbd7f09c9","subnet-081e593c9cc8b1376","subnet-0790db53816907cc4","subnet-0a8702af878a5a838"]' \
+          aws cloudformation deploy \
+            --template-file infra/ecs.yml \
+            --stack-name ${{ env.STACK_NAME }} \
+            --parameter-overrides \
+              ImageUrl=${{ env.DOCKER_REPO }}:latest \
+              VpcId=vpc-0a3cd97730bc5332b \
+              Subnets="subnet-084371090cddeab02,subnet-08ee9a8fbd634ee19,subnet-0233ac4ffbd7f09c9,subnet-081e593c9cc8b1376,subnet-0790db53816907cc4,subnet-0a8702af878a5a838" \
+            --capabilities CAPABILITY_NAMED_IAM
